@@ -1,0 +1,580 @@
+\documentclass{beamer}
+\usetheme{Madrid}
+
+\title{The implementation of DNN}
+\author{by Minyan Zhang}
+\centering
+\date{March 2020}
+\begin{document}
+\maketitle
+\begin{frame}{Content}
+\begin{itemize}
+\item The Programming Language and Software Libraries.
+\item The Installation of Tensorflow 2.0.
+\item The Construction of Models
+\item The Regression Problem.
+\item The Solution to the Regression Problem.
+\item The Image Recognition Problem.
+\item The Solution.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Programming Language and Software Libraries}
+\begin{itemize}
+    \item Python \& Anaconda
+    \item Tensorflow 1.0 \& Tensorflow 2.0
+
+    https://www.tensorflow.org/
+    \item Pytorch
+
+    https://pytorch.org/
+    \item Other useful libraries: pandas, numpy, matplotlib, seaborn
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Installation of Tensorflow 2.0. -- CPU \& GPU}
+   \begin{itemize}
+     \item Pip + Virtual Environment
+
+     https://www.tensorflow.org/install/pip
+     \item Anaconda(CPU)
+
+     \begin{itemize}
+        \item Construct an virtual environment: {\color{blue} conda create -n the\_name python=the\_version\_of\_python(3.X)}
+        \item Enter the virtual environment: {\color{blue} conda activate the\_name}
+        \item Install the tensorflow: {\color{blue} pip install tensorflow==the\_version\_of\_tensorflow (2.1.0)}
+     \end{itemize}
+     
+     \item For GPU version, you need to chech whether the GPU on your computer supports CUDA. Generally, the NVIDIA GPU will support CUDA.
+   \end{itemize}
+ \begin{flushleft}
+ \textbf{Remark:} All the sentences above are entered in "cmd".
+ \end{flushleft}
+\end{frame}
+
+\begin{frame}{The Construction of Models}
+\begin{itemize}
+  \item layers
+  \item optimizer
+  \item loss
+  \item metrics, Connection, compile
+  \item Training
+  \item Testing
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{The Construction of Models -- layers}
+\begin{block}{Dense}
+{\color{blue} \small{layer=tf.keras.layers.
+
+Dense(units,input\_shape(batch\_size,input\_dim),activation=func\_name)}}
+
+\centerline{$output=activation(kernel\cdot input+bias).$}
+
+The dimension of kernel: units$\times$input\_dim; the dimension of bias: units$\times$1.
+
+The example of activation: `relu', `sigmoid', `softmax', `tanh'.
+\end{block}
+\begin{figure}
+  \centering
+  % Requires \usepackage{graphicx}
+  \includegraphics[width=3in]{Regression.png}\\
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{The Construction of Models -- layers}
+\begin{block}{Conv2D}
+{\color{blue} \small{layer=
+
+tf.keras.layers.Conv2D(input\_shape(rows,cols,channels),filters=num,
+kernel\_size=(rows,cols),strides=($s_1$,$s_2$),padding,activation)}}
+
+``filters" is the number of output filters;
+
+``padding" has two values: `valid' and `same'. If `valid', left columns or rows will be abandoned. If `same', zeros will be supplied to make the sizes match.
+\end{block}
+
+\begin{flushleft}
+  Example: Assume input\_shape(2,3,1), filters=1, kernel\_size=(2,2), strides=(1,1). If padding=`valid', the size of output is (1,2,1); if padding=`same', the size of output is (1,3,1).
+\end{flushleft}
+\begin{figure}
+\centering
+\begin{minipage}[t]{0.25\linewidth}
+\centering
+\includegraphics[width=1.15in]{Conv2D1.png}
+\end{minipage}
+\begin{minipage}[t]{0.25\linewidth}
+\centering
+\includegraphics[width=1.3in]{Conv2D2.png}
+\end{minipage}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}
+\begin{block}{MaxPool2D}
+{\color{blue} \small{layer=tf.keras.layers.MaxPool2D(pool\_size=(rows,cols),strides=($s_1$,$s_2$),padding)}}
+``pool\_size" is similar to ``kernel\_size";
+``strides" and ``padding" are the same in ``Conv2D".
+\end{block}
+
+\begin{block}{Flatten}
+Flattens the input.
+\end{block}
+\begin{flushleft}
+Example: input\_shape of Flatten=(None,32,32,3), output\_shape=$32\times 32\times 3=3072$
+\end{flushleft}
+\end{frame}
+
+
+\begin{frame}{The Construction of Models -- optimizer}
+
+\leftline{{\color{blue} optimizer=tf.keras.optimizers.schedules\_namespace()}}
+
+\leftline{Generally used schedules\_namespace:}
+\begin{itemize}
+  \item Adagrad
+
+  learning\_rate=0.001, initial\_accumulator\_value=0.1, epsilon=$10^{-07}$
+  \begin{gather*}
+    accum_{n+1}=accum_{n}+g_n^2; accum_0=initial\_accumulator\_value; \\
+    \theta_{n+1}=\theta_n-learning\_rate\frac{g_n}{\sqrt{accum_{n+1}}+epsilon}
+  \end{gather*}
+  \item RMSprop
+
+  learning\_rate=0.001, rho=0.9, epsilon=$10^{-07}$
+  \begin{gather*}
+    mon_{n+1}=rho\cdot mon_n+(1-\rho) g_n\odot g_n;\\
+    \theta_{n+1}=\theta_n-learning\_rate\frac{g_n}{\sqrt{mon_{n+1}+epsilon}}
+  \end{gather*}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\begin{itemize}
+  \item Adam
+
+  learning\_rate=0.001, beta\_1=0.9, beta\_2=0.999, epsilon=$10^{-07}$
+  \begin{gather*}
+    m_{n+1}=beta\_1m_n+(1-beta\_1)g_n;\\
+    v_{n+1}=beta\_2v_n+(1-beta\_2)g_n\odot g_n;\\
+    \hat{m}_{n+1}=\frac{m_{n+1}}{1-beta\_1^{n+1}}; \hat{v}_{n+1}=\frac{v_{n+1}}{1-beta\_2^{n+1}};\\
+    \theta_{n+1}=\theta_n-learning\_rate\frac{\hat{m}_{n+1}}{\sqrt{\hat{v}_{n+1}}+epsilon}
+  \end{gather*}
+  \item SGD
+
+  learning\_rate=0.01, momentum=0.0, nesterov=False
+  \begin{gather*}
+    v_{n+1}=momentum\cdot v_n-learning\_rate\cdot g_n \\
+    \theta_{n+1}=\theta_n+v_{n+1}
+  \end{gather*}
+  \begin{itemize}
+    \item $g_n$ is evaluated at $\theta_n$ if nesterov=False;
+    \item $g_n$ is evaluated at $\theta_n+ momentum\cdot v_n$ if nesterov=True
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{The Construction of Models -- loss}
+
+\leftline{{\color{blue} loss=tf.keras.losses.class\_name() or 'func\_name'}}
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|}
+  \hline
+  Class\_name & func\_name\\
+  \hline
+  \hline
+  CategoricalCrossentropy & categorical\_crossentropy \\
+  MeanAbsoluteError & mae \\
+  MeanSquaredError & mse \\
+  \hline
+\end{tabular}
+\caption{Generally used built-in loss class\_name and func\_name}
+\end{table}
+\begin{itemize}
+  \item Self-defined loss function
+
+  {\color{blue}
+  def custom\_loss(y\_actual,y\_pred):
+
+    \qquad custom\_loss=f(y\_actual,y\_pred)
+
+    \qquad return custom\_loss}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Construction of Models -- metrics, Connection, compile}
+\begin{itemize}
+  \item metrics
+
+  {\color{blue} metrics=[`metrics1', `metrics2',$\ldots$]}
+
+  Generally used built-in metrics:
+
+  `accuracy', `precision', `recall', `mean', `mae', `mse'
+  \item Connection
+  \begin{itemize}
+    \item {\color{blue} model=tf.keras.Sequential([layer1,layer2,$\ldots$])}
+    \item {\color{blue} model.add(layer)}
+  \end{itemize}
+  \item compile
+
+  {\color{blue} model.compile(optimizer=, loss=, metrics=)}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{The Construction of Models -- Training}
+
+\begin{flushleft}
+
+\footnotesize{\color{blue} model.fit(train\_data, true\_result, epoch=num, verbose=,validation\_split=,callback=[])}
+
+``\textbf{epoch}" is the count that you train the entire training dataset.
+
+``\textbf{verbose}" has three values: 0=silent; 1(default)=process bar; 2=one line per epoch.
+
+``\textbf{validation\_split}" is the fraction of the training data to be used as validation data and takes value between 0 and 1.
+
+``\textbf{callback}" can be many classes: EarlyStopping, ModelCheckpoint, Tensorboard or self-defined class.
+\bigskip
+
+{\color{blue} Example: }
+EarlyStopping: Stop training when a monitored quantity has stopped improving.
+
+{\color{blue} tf.keras.callbacks.EarlyStopping(monitor=, patience=num)}
+``\textbf{monitor}"='loss','val\_loss'(default),'metric1','val\_metric1','metric2' or 'val\_metric2',...
+
+``\textbf{patience}": Number of epochs with no improvement after which training will be stopped.
+
+\end{flushleft}
+
+\end{frame}
+
+\begin{frame}{The Construction of Models -- Testing}
+\begin{itemize}
+  \item {\color{blue} model.evaluate(test\_data,test\_labels)}
+  Given the test\_data, the trained model will return predicted values. Use the "loss" and "metrics" of this model to compare the predicted labels and test\_labels.
+  \item {\color{blue} model.predict(x\_test)}
+  Generates output predictions for the input x\_test after training the model.
+\end{itemize}
+\begin{flushleft}
+\emph{Comparison to model.fit:}
+
+model.fit is to train the model by using the given data. The biases and kernels of all layers will be changed based during the training.
+\bigskip
+
+model.evaluate and model.predict are used to do the calculations for the given data based on the model. The parameters for each layer will not change.
+\end{flushleft}
+\end{frame}
+
+
+\begin{frame}{The Regression Problem}
+
+\begin{figure}
+  \begin{tabular}{p{0.5\textwidth} p{0.4\textwidth}}
+\vspace{10pt} \includegraphics[width=2.5in]{3d_xyz_2.png}
+&\vspace{-10pt} \small{For a set of given 3-d data $(x,y,z)$. $(x,y,z)$ are 2-d data on $[0,1]\times[0,1]$. $z$ is the value $y-(x^3-3/2 x^2+x/2+1/2)$. We will firstly use deep learning to study the relationship between the set of 2-d data $(x,z)$ and $y$. Then, we test another set of $(x,z)$ on the model by comparing the predictions with the true results $y$. Finally, we use the model to build up the predict function for $f(x)=x^3-3/2 x^2+x/2+1/2$.}
+     \end{tabular}
+\end{figure}
+
+\end{frame}
+
+
+
+\begin{frame}{The Solution to the Regression Problem}
+
+\begin{itemize}
+  \item Get Dataset
+  \item Preprocess Data
+  \item Construct Mode
+  \item Train Mode
+  \item Predict
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{The Solution to the Regression Problem -- Get Dataset}
+
+https://blog.tensorflow.org/2019/02/introducing-tensorflow-datasets.html
+
+https://www.tensorflow.org/datasets/catalog/overview (include MNIST)
+
+\begin{figure}
+  \begin{tabular}{p{0.5\textwidth} p{0.4\textwidth}}
+\vspace{-10pt} \includegraphics[width=2.25in]{GetD1.jpg}
+&\vspace{-5pt} \small{To get the data, we firstly generate 1000 (any larger number) 2-d data in $[0,1]\times[0,1]$. Using the given function $f(x)=x^3-3/2 x^2+x/2+1/2$, we can calculate out the distance $y-f(x)$ for each 2-d data. For future use, we can store this set of data in an excel document (data.xls).}\\
+\vspace{-7pt} \includegraphics[width=2.5in]{GetD2.jpg}
+&\vspace{-5pt} \small{Use pandas to get the data from the excel document.}
+\end{tabular}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\begin{figure}
+  \includegraphics[width=2in]{GetD3.jpg}\\
+  \includegraphics[width=2in]{GetD4.jpg}\\
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{The Solution to the Regression Problem -- Preprocess Data}
+\begin{itemize}
+  \item Cleanse data
+  \begin{figure}
+  \begin{tabular}{p{0.4\textwidth} p{0.4\textwidth}}
+  \vspace{-10pt} \includegraphics[width=1in]{PreD1.jpg}
+  &\vspace{-5pt} \small{If one number is 0, use "dropna()" to get rid of this data.}
+  \end{tabular}
+\end{figure}
+  \item Divide data into training data and test data.
+\begin{figure}
+\centering
+  \includegraphics[width=2.5in]{PreD2.jpg}\\
+\end{figure}
+\end{itemize}
+\begin{figure}
+\begin{minipage}[t]{0.4\linewidth}
+\centering
+\includegraphics[width=1in]{PreD3.jpg}
+\end{minipage}
+\begin{minipage}[t]{0.4\linewidth}
+\centering
+\includegraphics[width=1in]{PreD4.jpg}
+\end{minipage}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+  \item Choose one variable as label and take labels
+\begin{figure}
+  \includegraphics[width=2in]{PreD6.jpg}\\
+\end{figure}
+  \item Normalize data
+\begin{figure}
+  \includegraphics[width=4in]{PreD7.jpg}\\
+  \caption{Get the statistic information of $x,y$}
+\end{figure}
+ \begin{figure}
+  \includegraphics[width=3in]{PreD8.jpg}\\
+  \caption{Normalize data}
+\end{figure}
+\end{itemize}
+\leftline{\color{red} Why do we normalize the data before training?}
+\end{frame}
+
+
+\begin{frame}{The Solution to the Regression Problem -- Construct Mode}
+\begin{figure}
+  \includegraphics[width=4in]{denselayer.jpg}\\
+  \caption{The basic model of neural network}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\begin{figure}
+  \begin{flushleft}
+  \begin{tabular}{p{0.5\textwidth} p{0.1\textwidth} p{0.3\textwidth}}
+  \vspace{-30pt}\includegraphics[width=3.5in]{ConM1.jpg}& &\vspace{30pt}\small{Building up the deep learning model. Commonly, we start from 3-layer network.}\\
+  \vspace{-10pt}\includegraphics[width=3in]{ConM2.jpg}& &\vspace{20pt}\small{Check the construction details of model.
+
+  {\color{red} Q: How to calculate the number of the parameters in each layer?}}
+  \end{tabular}
+  \end{flushleft}
+\end{figure}
+
+\end{frame}
+
+
+\begin{frame}{The Solution to the Regression Problem -- Train Mode}
+\begin{figure}
+  \begin{flushleft}
+  \begin{tabular}{p{0.4\textwidth} p{0.45\textwidth}}
+  \vspace{-10pt}\small{Self-defined callback function: A '$\cdot$' will be output every epoch end. Every 100 '$\cdot$' will start a new line.}& \vspace{-10pt}\includegraphics[width=2.5in]{TrainD1.jpg}
+  \end{tabular}
+  \end{flushleft}
+\end{figure}
+
+\begin{itemize}
+  \item 1st train
+\begin{figure}
+  \includegraphics[width=3in]{TrainD2.jpg}\\
+\end{figure}
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+\begin{figure}
+  \includegraphics[width=3in]{TrainD3.jpg}\\
+  \includegraphics[width=3in]{regression_error.png}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+  \item 2nd train
+
+From the graph, we can see that after epoch=20, the Train Error will keep small but the Val Error will raise. So, we should stop train earlier or try other neural networks. If we choose to stop earlier, we will use callback function "EarlyStopping".
+
+\begin{figure}
+  \includegraphics[width=4in]{TrainD4.jpg}\\
+\end{figure}
+
+But in our case, we just simply change epoch from 500 to 150.
+\begin{figure}
+  \includegraphics[width=3.75in]{TrainD5.jpg}\\
+\end{figure}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{The Solution to the Regression Problem -- Predict}
+\begin{figure}
+  \begin{flushleft}
+  \begin{tabular}{p{0.45\textwidth} p{0.5\textwidth}}
+  \vspace{-10pt}\includegraphics[width=2.4in]{PredD1.jpg}& \vspace{-30pt}\includegraphics[width=2in]{regreresult1.png}
+  \end{tabular}
+  \end{flushleft}
+  \caption{The comparison between predicted value for $y$ with the real value for $y$}
+\end{figure}
+\begin{flushleft}
+We use our trained model to find the predicted labels for the normalized test data and then compare it with the real labels. 
+\end{flushleft}
+\end{frame}
+
+\begin{frame}
+\leftline{We can also plot the error distribution.}
+\begin{figure}
+  \begin{flushleft}
+  \begin{tabular}{p{0.425\textwidth} p{0.5\textwidth}}
+  \vspace{-5pt}\includegraphics[width=2.25in]{PredD2.jpg}& \vspace{-20pt}\includegraphics[width=2.5in]{regreresult.png}
+  \end{tabular}
+  \end{flushleft}
+  \caption{The error distribution between the predicted labels and the real labels for test data.}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\begin{flushleft}We can also use this model to get an approximate function of $f(x)=x^3-3/2 x^2+x/2+1/2$.\end{flushleft}
+\begin{figure}
+  \centering
+  \vspace{-15pt}
+  \includegraphics[width=4.5in]{PredD3.jpg}\\
+  \caption{We firstly normalize $(x,y's location)$ and then use the trained model to predict $y$.}
+\end{figure}
+\begin{tabular}{|c|c|c|c|}
+  \hline
+  x & func\_y\_x & f(x) & Absolute Error \\
+  \hline
+  0 & 0.5041 & 0.5 & 0.0041 \\
+  \hline
+  1 & 0.4963 & 0.5 & 0.0037 \\
+  \hline
+  0.5 & 0.5023 & 0.5 & 0.0023 \\
+  \hline
+  0.25 & 0.5465 & 0.5469 & 0.0004 \\
+  \hline
+  0.333 & 0.5404 & 0.5371 & 0.0034 \\
+  \hline
+  0.45& 0.5099 & 0.5124 & 0.0025 \\
+  \hline
+  0.245 & 0.5465 & 0.5472 & 0.0007 \\
+  \hline
+  0.765 & 0.4519 & 0.4524 & 0.0005 \\
+  \hline
+\end{tabular}
+
+\end{frame}
+
+\begin{frame}{The Solution to the Regression Problem -- Conclusion}
+\begin{enumerate}
+  \item The regression problem is very similar to the classification problems. If we choose "y's location" as the labels, use 'a' to represent the point $(x,y)$ above or on the graph of $f(x)$ and 'b' to represent $(x,y)$ below the $f(x)$ and hope to classify given 2-d $(x,y)$ into 'a' or 'b' class, our problem is a classification problem. While, if we choose $y$ as the labels, it will become a regression problem.
+  \item There is no restriction about the amounts of layers and nodes for each hidden layers. Generally, the deeper the network is, the better the result is. For the amount of nodes in each layer, we just let it smaller than the capacity of the training data.
+\end{enumerate}
+
+\end{frame}
+
+
+\begin{frame}{The Image Recognition Problem}
+\begin{figure}
+  \begin{flushleft}
+  \begin{tabular}{p{0.3\textwidth} p{0.3\textwidth} p{0.3\textwidth}}
+  \vspace{-20pt}\includegraphics[width=1.5in]{0.png}&\vspace{-20pt}\includegraphics[width=1.5in]{1.png}&\vspace{-20pt}\includegraphics[width=1.5in]{2.png}\\
+  \vspace{-20pt}\includegraphics[width=1.5in]{4.png}&\vspace{-20pt}\includegraphics[width=1.5in]{5.png}&\vspace{-20pt}\includegraphics[width=1.5in]{9.png}
+  \end{tabular}
+  \end{flushleft}
+  \caption{MNIST dataset contains lots of images of numbers. The neural network will recognize the numbers on the images by learning the data from this set.}
+\end{figure}
+\end{frame}
+
+
+
+\begin{frame}{The Solution}
+\begin{itemize}
+\item Prepare Dataset
+\begin{figure}
+  \begin{flushleft}
+  \begin{tabular}{p{0.5\textwidth} p{0.4\textwidth}}
+  \vspace{-10pt}\includegraphics[width=3in]{PreDG1.jpg}&\vspace{-20pt} \small{Get data from MINST. The data from MINST doesn't have the dimension for channel.}\\
+  \vspace{0pt}\includegraphics[width=2.25in]{PreDG2.jpg}&\vspace{0pt}\small{Transfer the raw data from MINST to the data whose form can be processed by Con2D.}
+  \end{tabular}
+  \end{flushleft}
+\end{figure}
+\end{itemize}
+\leftline{{\color{red}Why don't we normalize the data here?}}
+\end{frame}
+
+
+\begin{frame}
+\begin{itemize}
+\item Construct Model
+\begin{figure}
+  \includegraphics[width=3.5in]{ConMG1.jpg}\\
+  \includegraphics[width=3in]{ConMG2.jpg}
+\end{figure}
+\end{itemize}
+\leftline{\color{red} Q:Why the output shape of Conv2D is (None, 26, 26, 32)?}
+\leftline{\color{red} Real Ques: Why the amount of parameters of Conv2D is 320?}
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+\item Training
+\begin{figure}
+  \includegraphics[width=3.5in]{TrainDG1.jpg}\\
+\end{figure}
+\begin{figure}
+  \begin{flushleft}
+  \begin{tabular}{p{0.45\textwidth} p{0.45\textwidth}}
+  \vspace{-10pt}\includegraphics[width=2.25in]{TrainDG2.jpg}&\vspace{-35pt}\includegraphics[width=2in]{train1.png}
+  \end{tabular}
+  \end{flushleft}
+\end{figure}
+\item Testing
+\begin{figure}
+  \includegraphics[width=4in]{Test1.jpg}\\
+\end{figure}
+\end{itemize}
+
+\end{frame}
+
+
+
+\begin{frame}
+\huge{\centerline{The End}}
+\end{frame}
+
+\end{document}
